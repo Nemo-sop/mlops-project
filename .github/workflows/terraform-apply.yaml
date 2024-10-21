@@ -5,6 +5,15 @@ description: Common steps for terraform (setup, init, fmt, validate, plan)
 ## Section 1: FILL IN CODE HERE TO SET UP SCHEDULING + ANY ENVIRONMENT VARIABLES
 ## ==============================================
 
+# Define the triggers for this GitHub Action workflow
+on:
+  push:
+    branches:
+      - main  
+  workflow_dispatch: 
+  schedule:
+    - cron: '0 1 * * *' 
+
 jobs:
   terraform:
     name: "Terraform Apply"
