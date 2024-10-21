@@ -10,3 +10,13 @@ locals {
 ## ==============================================
 ## Section 1: FILL IN CODE HERE TO REFERENCE RELEVANT MODULES
 ## ==============================================
+module "service_accounts" {
+  source    = "./modules/service-accounts"  
+  usernames = keys(local.usernames)          
+  project_id = local.project_id               
+}
+
+module "big_query" {
+  source    = "./modules/big-query"          
+  project_id = local.project_id               
+}
