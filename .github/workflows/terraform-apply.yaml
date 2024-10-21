@@ -33,6 +33,32 @@ runs:
         ## ==============================================
         ## Section 2: FILL IN CODE HERE TO SET UP GOOGLE AUTHENTICATION
         ## ==============================================
+        run: |
+          echo "Authenticating to Google Cloud using Workload Identity Federation"
+
+          # The environment variables need to be set as GitHub secrets for security
+          # GOOGLE_CREDENTIALS: Base64 encoded service account key file relevant to the service account
+          # GOOGLE_WORKLOAD_IDENTITY_POOL: The ID of the Workload Identity Pool
+          # GOOGLE_WORKLOAD_IDENTITY_PROVIDER: The ID of the Workload Identity Provider
+          # GITHUB_REPO: The full name of the repo (e.g., "owner/repo")
+          # GITHUB_REF: The branch or tag ref (e.g., "refs/heads/main")
+
+          echo ${{ secrets.GOOGLE_CREDENTIALS }} | base64 --decode > ${HOME}/key.json
+
+          # Authenticate with the service account using Workload Identity Federation
+          gcloud auth activate-service-account --key-file=${HOME}/key.json
+
+          # Set the necessary config parameters for WIF
+          gcloud config set auth/authorization "true"
+          gcloud config set core/project ${{ secrets.GOOGLE_PROJECT_ID }}
+          gcloud config set core/account ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+
+          # Use WIF to authenticate
+          gcloud beta auth login \
+            --workload-identity-pool=${{ secrets.GOOGLE_WORKLOAD_IDENTITY_POOL }} \
+            --workload-identity-provider=${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }} \
+            --impersonate-service-account=${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }} \
+            --audiences=${{ secrets.GOOGLE_AUDIENCES }}
 
       - name: Terraform init
         id: init
@@ -41,12 +67,21 @@ runs:
 
       - name: Terraform checks
         id: checks
-        run:
         ## ==============================================
         ## Section 3: FILL IN CODE HERE TO SET UP TERRAFORM CHECKS
         ## ==============================================
+        run: |
+          echo "Formatting Terraform code..."
+          terraform fmt -check -recursive  
+
+          echo "Validating Terraform configuration..."
+          terraform validate  
+
+          echo "Generating Terraform plan..."
+          terraform plan -out=tfplan  
+          terraform show -json tfplan | jq '.' 
 
       - name: Terraform Apply
-        run: terraform apply
+        run: terraform apply # -auto-approve We could add it in order to bypass manual approval wich could be useful in automated workflows where human interaction could interrupt the process
         shell: bash
         working-directory: ${{ env.TERRAFORM_DIRECTORY }}
